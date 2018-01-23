@@ -66,6 +66,11 @@ def query(filetype, name, entities, labels, fields):
 
 if __name__ == "__main__":
   names = {
+    # filename: (
+    #   <region Wikidata ID (str or list)>,
+    #   <list of label language codes>,
+    #   <dict of additional IDs:  <field_name>: <wikidata property ID>>
+    # )
     'canada': ('Q16', ['en','fr'], {'iso_3166_2':'P300'}),
     'germany': ('Q183', ['en','de'], {'iso_3166_2':'P300'}),
   }
