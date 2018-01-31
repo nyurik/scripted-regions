@@ -120,6 +120,16 @@ if __name__ == "__main__":
   gen('china', sparql('Q148', ['en','zh'], {'iso_3166_2':'P300'}))
   gen('united_kingdom', sparql('Q145', ['en'], {'iso_3166_2':'P300'}))
   gen('france', sparql('Q142', ['en', 'fr'], {'iso_3166_2':'P300'}))
+  gen('spain', sparql('Q29', ['en', 'es'], {'iso_3166_2':'P300'}))
+  gen('russia', sparql('Q159', ['en', 'ru'], {'iso_3166_2':'P300'}))
+  gen('india', sparql('Q668', ['en'], {'iso_3166_2':'P300'}))
+  gen('japan', sparql('Q17', ['en', 'ja'], {'iso_3166_2':'P300'}))
+  gen('australia', sparql('Q408', ['en'], {'iso_3166_2':'P300'}))
+  gen('netherland', sparql('Q55', ['en', 'nl'], {'iso_3166_2':'P300'}))
+  gen('south korea', sparql('Q884', ['en', 'ko'], {'iso_3166_2':'P300'}))
+  gen('brazil', sparql('Q155', ['en', 'pt'], {'iso_3166_2':'P300'}))
+  gen('sweden', sparql('Q34', ['en', 'sv'], {'iso_3166_2':'P300'}))
+  gen('poland', sparql('Q36', ['en', 'pl'], {'iso_3166_2':'P300'}))
 
   # P883 stores both string and number for US states. E.g. MI and 26. Get string only.
   gen('us_states', sparql('Q30', ['en'], {'iso_3166_2':'P300', 'fips_5_2_alpha':'P883'},
