@@ -7,7 +7,7 @@ from string import Template
 
 query_template = Template('''
 #defaultView:MapRegions
-# version 7
+# version 8
 SELECT
   (if(bound(?id2),?id2,?id) as ?id)
   $outputVars
