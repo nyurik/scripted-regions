@@ -9,12 +9,12 @@ query_template = Template('''
 #defaultView:MapRegions
 # version 8
 SELECT
-  (if(bound(?id2),?id2,?id) as ?id)
+  (if(bound(?id2),?id2,?id1) as ?id)
   $outputVars
 WHERE {
 # Using nested query to ensure there is only one ?id2 value
 {SELECT
-  ?id
+  ?id1
   (SAMPLE(?id2) as ?id2)
 $outputs
 WHERE {
@@ -22,7 +22,7 @@ WHERE {
   VALUES ?entity { $entities }
 
   # P150 = "contains administrative territorial entity"
-  ?entity $depth ?id .
+  ?entity $depth ?id1 .
 
 $use_id2
 $condition
@@ -30,12 +30,12 @@ $labels
 $fields
 }
 # remove possible ID duplicates
-GROUP BY ?id}
+GROUP BY ?id1}
 }
 ''')
 
-label_query_template = Template('  OPTIONAL { ?id rdfs:label ?label_$lang . FILTER(LANG(?label_$lang) = "$lang") }')
-field_query_template = Template('  OPTIONAL { ?id wdt:$prop ?$var }')
+label_query_template = Template('  OPTIONAL { ?id1 rdfs:label ?label_$lang . FILTER(LANG(?label_$lang) = "$lang") }')
+field_query_template = Template('  OPTIONAL { ?id1 wdt:$prop ?$var }')
 var_out_template = Template('  (SAMPLE(?$var) as ?$var)')
 condition_template = Template('  FILTER($cond)')
 
@@ -43,30 +43,19 @@ def filepath(*values):
   return pathlib.join(pathlib.dirname(pathlib.realpath(__file__)), *values)
 
 
-def sparql(entities, labels, fields, depth=1, condition=False, use_coextensive=False):
+def sparql(entities, labels, fields, depth=1, condition=False, id2_generator=[]):
   '''
   entities: list|string, each value as a Qnnn: 'Q16'
   labels: list of lang codes
   fields: dict, e.g. {'iso_3166_2': 'P300', ...}
   depth: how many levels of P150 to use. 1 - immediate, 2 - two levels down,...
   condition: any additional SPARQL condition
+  id2_generator: an array of optional SPARQL conditions to generate id2 values
   '''
 
   if type(entities) == type(''): entities = [entities]
 
   outputVars = list(fields.keys()) + ['label_' + v for v in labels]
-
-  if use_coextensive:
-    # There are some combined city-counties, like New York boroughs.
-    # In WD they are represented as two different entities, but OSM uses one.
-    # WD marks them with P3403 (coextensive with):
-    #   "this item has the same boundary as the target item"
-    # If P3403 exists, use that for the ?id, otherwise use the original.
-    # Technically, OSM should list both WD IDs separating by semicolon,
-    # But Sophox cannot handle that at the moment.
-    use_id2 = '  OPTIONAL { ?id wdt:P3403 ?id2 . }'
-  else:
-    use_id2 = ''
 
   return query_template.substitute(
     entities=' '.join(['wd:' + e for e in entities]),
@@ -76,12 +65,11 @@ def sparql(entities, labels, fields, depth=1, condition=False, use_coextensive=F
     outputs='\n'.join([var_out_template.substitute({'var': v}) for v in outputVars]),
     outputVars=' '.join(['?' + v for v in outputVars]),
     condition='' if not condition else condition_template.substitute({'cond': condition}),
-    use_id2=use_id2,
+    use_id2='\n'.join(id2_generator),
   )
 
 def run_query(filetype, name, query):
   url = 'https://sophox.org/regions/{0}.json?sparql={1}'.format(filetype, quote(query))
-
   response = requests.get(url)
   response.raise_for_status()
 
@@ -117,7 +105,6 @@ if __name__ == "__main__":
 
   gen('canada', sparql('Q16', ['en','fr'], {'iso_3166_2':'P300'}))
   gen('germany', sparql('Q183', ['en','de'], {'iso_3166_2':'P300'}))
-  gen('china', sparql('Q148', ['en','zh'], {'iso_3166_2':'P300'}))
   gen('united_kingdom', sparql('Q145', ['en'], {'iso_3166_2':'P300'}))
   gen('france', sparql('Q142', ['en', 'fr'], {'iso_3166_2':'P300'}))
   gen('spain', sparql('Q29', ['en', 'es'], {'iso_3166_2':'P300'}))
@@ -132,10 +119,17 @@ if __name__ == "__main__":
   gen('poland', sparql('Q36', ['en', 'pl'], {'iso_3166_2':'P300'}))
   gen('turkey', sparql('Q43', ['en', 'tr'], {'iso_3166_2':'P300'}))
 
+  # Taiwan is a disputed China province that does not have a defined geometry in OSM, 
+  # so we use the Taiwan country border.
+  gen('china', sparql('Q148', ['en','zh'], 
+        {'iso_3166_2':'P300', 'division_code': 'P442'}, 
+        id2_generator=['BIND(if(?id1=wd:Q57251, wd:Q865, ?id1)  AS ?id2)']))
+
+
   # P883 stores both string and number for US states. E.g. MI and 26. Get string only.
   gen('us_states', sparql('Q30', ['en'], {'iso_3166_2':'P300', 'fips_5_2_alpha':'P883'},
         condition='!BOUND(?fips_5_2_alpha) || REGEX(?fips_5_2_alpha, "[A-Z]{2}")'))
 
   gen('us_counties', sparql('Q30', ['en'],
         {'fips_6_4_alpha': 'P882', 'gnis': 'P590', 'viaf': 'P214'},
-        depth=2, use_coextensive=True))
+        depth=2, id2_generator=['OPTIONAL { ?id1 wdt:P3403 ?id2 . }']))
