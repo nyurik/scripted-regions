@@ -131,10 +131,8 @@ if __name__ == "__main__":
   gen('sweden', sparql('Q34', ['en', 'sv'], {'iso_3166_2':'P300'}))
   gen('poland', sparql('Q36', ['en', 'pl'], {'iso_3166_2':'P300'}))
   gen('turkey', sparql('Q43', ['en', 'tr'], {'iso_3166_2':'P300'}))
-
-  # P883 stores both string and number for US states. E.g. MI and 26. Get string only.
-  gen('us_states', sparql('Q30', ['en'], {'iso_3166_2':'P300', 'fips_5_2_alpha':'P883'},
-        condition='!BOUND(?fips_5_2_alpha) || REGEX(?fips_5_2_alpha, "[A-Z]{2}")'))
+  
+  gen('us_states', sparql('Q30', ['en'], {'iso_3166_2':'P300', 'fips_5_2_alpha':'P5086'}))
 
   gen('us_counties', sparql('Q30', ['en'],
         {'fips_6_4_alpha': 'P882', 'gnis': 'P590', 'viaf': 'P214'},
